@@ -61,6 +61,8 @@ client.on('interactionCreate', async (interaction) => {
     const action_message = options.getString('action_message') || '';
     const actionArray = [];
     const dangerArray = [];
+
+    //actionArray.push([1]);
     
     for (let i=0; i<action_dice; i++) {
       actionArray.push(Math.round((Math.random()*5)+1))
@@ -78,7 +80,7 @@ client.on('interactionCreate', async (interaction) => {
         dangerArray.sort().splice(dangerArray.sort().indexOf(i),1);
       };
     };
-    
+
     /*
     console.log(actionResults);
     console.log(dangerResults);
@@ -88,32 +90,33 @@ client.on('interactionCreate', async (interaction) => {
     */
 
     function oracleInteraction(oracleText) {
+      const actionString = action_message.trim().toString() == '' ? '' : '*' + action_message.trim().toString() + '*\n';
       interaction.reply({
-        content: oracleText + actionResults.toString() + "] Danger Dice[" + dangerResults.toString() + "]",
+        content: actionString + oracleText + "\nAction Dice[" + actionResults.toString() + "] Danger Dice[" + dangerResults.toString() + "]",
         ephemeral: false,
       })
     };
 
     if (actionArray.length == 0) {
-      oracleInteraction("**No and...**  You fail and things get much worse.\nAction Dice[");
+      oracleInteraction("**Botch!\nNo and...**  You fail and things get much worse.");
     }
     else if (Math.max(...actionArray.sort()) == 1) {
-      oracleInteraction("**No and...**  You fail and things get much worse.\nAction Dice[");
+      oracleInteraction("**No and...**  You fail and things get much worse.");
     }
     else if(Math.max(...actionArray.sort()) == 2) {
-      oracleInteraction("**No...**  You fail.\nAction Dice[");
+      oracleInteraction("**No...**  You fail.");
     }
     else if(Math.max(...actionArray.sort()) == 3) {
-      oracleInteraction("**No but...**  You fail, just.\nAction Dice[");
+      oracleInteraction("**No but...**  You fail, just.");
     }
     else if(Math.max(...actionArray.sort()) == 4) {
-      oracleInteraction("**Yes but...**  You succeed, but at a cost.\nAction Dice[");
+      oracleInteraction("**Yes but...**  You succeed, but at a cost.");
     }
     else if(Math.max(...actionArray.sort()) == 5) {
-      oracleInteraction("**Yes...**  You succeed.\nAction Dice[");
+      oracleInteraction("**Yes...**  You succeed.");
     }
     else if(Math.max(...actionArray.sort()) == 6) {
-      oracleInteraction("**Yes and...**  You succeed and gain some other advantage\nAction Dice[");
+      oracleInteraction("**Yes and...**  You succeed and gain some other advantage.");
     };
   }
 });
