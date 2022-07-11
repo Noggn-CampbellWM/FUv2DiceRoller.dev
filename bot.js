@@ -7,6 +7,10 @@ const client = new Discord.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
 });
 
+function isNull(ifNull, whenNull){
+  ifNull === null ? ifNull : whenNull
+};
+
 // On startup...
 client.on("ready", () => {
   console.log(`${client.user.tag} came online!`)
@@ -113,13 +117,17 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'fu') {
     const action_dice = Math.max(Math.min(options.getNumber('action_dice'),10),0) || 0;
     const danger_dice = Math.max(Math.min(options.getNumber('danger_dice'),10),0) || 0;
+    const optActionMessage = options.getString('action_message') || '';
+
     const action_message = '' || (
-      options.getString('action_message').substring(0,255).trim().length === options.getString('action_message').length ?
-      options.getString('action_message').trim()
+      optActionMessage.substring(0,255).trim().length === optActionMessage.length ?
+      optActionMessage.trim()
       :
-      options.getString('action_message').substring(0,255).trim() + "...");
+      optActionMessage.substring(0,255).trim() + "...");
+
     const actionArray = [];
     const dangerArray = [];
+
     const outOfRangeMsg =
     Math.max(Math.min(options.getNumber('action_dice'),10),-10) === options.getNumber('action_dice')
     ||
@@ -189,13 +197,17 @@ client.on('interactionCreate', async (interaction) => {
 
   if (commandName === 'fu-classic') {
     const modifier = Math.max(Math.min(options.getNumber('modifier'),10),-10) || 0;
+    const optActionMessage = options.getString('action_message') || '';
+
     const action_message = '' || (
-      options.getString('action_message').substring(0,255).trim().length === options.getString('action_message').length ?
-      options.getString('action_message').trim()
+      optActionMessage.substring(0,255).trim().length === optActionMessage.length ?
+      optActionMessage.trim()
       :
-      options.getString('action_message').substring(0,255).trim() + "...");
+      optActionMessage.substring(0,255).trim() + "...");
+
     const rollArray = [];
     const rollType = modifier > -1? "Best of ": "Worst of ";
+
     const outOfRangeMsg =
     Math.max(Math.min(options.getNumber('modifier'),10),-10) === options.getNumber('modifier') ? "" : "\n*Your dice pool has been capped at 10.*";
 
