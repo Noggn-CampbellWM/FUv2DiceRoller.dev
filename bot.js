@@ -1,19 +1,43 @@
 const Discord = require("discord.js")
 const { Client ,Intents } = require('discord.js');
-const fs = require('fs');
-const fsPromises = require('fs').promises;
 const auth = require('./auth.json');
 const clientinfo = require('./clientinfo.json');
 const helpinfo = require('./helpinfo.json');
+const {Pool} = require('pg');
+const dbConnection = require('./dbConfig.json');
+//const { ApplicationCommandPermissionTypes } = require("discord.js/typings/enums");
 
 const client = new Discord.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
 });
 
+// "oakleaf" connection
+const pool = new Pool({
+  user: dbConnection.user,
+  host: dbConnection.host,
+  database: dbConnection.database,
+  password: dbConnection.password,
+  port: dbConnection.port
+});
+
+// check to see if there is already an entry in oakleaf.public.bot_commands.name, for use when registering a new command with Discord.
+async function checkCommandExists(cName) {
+    const res = await pool.query(`select bc.name from oakleaf.public.bot_commands bc where bc.name = '${cName}' fetch first 1 rows only`);
+    if (res.rows.length === 0) {
+      return null;
+    } else {
+      //console.log(res.rows[0].name)
+      return res.rows[0].name
+    };
+  };
+
 // On startup...
 client.on("ready", () => {
   console.log(`${client.user.tag} came online!`)
 
+ //client.user.setUsername(clientinfo.botName); //Uncomment to update Bot Username.
+  
+ // Allow my server to get instant command updates.
   const guildId = '992088891429503087'
   const guild = client.guilds.cache.get(guildId)
 
@@ -24,129 +48,263 @@ client.on("ready", () => {
     commands = client.application?.commands
   }
 
-  // Register slash commands on Discord.
+  // Register fu command with Discord.
   try {
-    commands?.create({
-      id: 'fuV2Oracle',
-      name: 'fu',
-      description: 'Invokes the FU2 Oracle.',
-      application_id: (clientinfo.clientid),
-      options: [
-        {
-          name: 'action_dice',
-          description: 'Amount of Action Dice.',
-          required: true,
-          type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-          minValue: 1,
-          maxValue: 10,
-        },
-        {
-          name: 'danger_dice',
-          description: 'Amount of Danger Dice.',
-          required: false,
-          type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-          minValue: 0,
-          maxValue: 10,
-        },
-        {
-          name: 'action_message',
-          description: 'Action description to be returned with the Oracle result.',
-          required: false,
-          type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
-          maxLength: 250,
+    checkCommandExists('fu').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+      if (results === null) {
+        try {
+          // BEGIN unique
+          commands?.create({
+            id: 'fuV2Oracle',
+            name: 'fu',
+            description: 'Invokes the FU2 Oracle.',
+            application_id: (clientinfo.clientid),
+            options: [
+              {
+                name: 'action_dice',
+                description: 'Amount of Action Dice.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 1,
+                maxValue: 10,
+              },
+              {
+                name: 'danger_dice',
+                description: 'Amount of Danger Dice.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 0,
+                maxValue: 10,
+              },
+              {
+                name: 'action_message',
+                description: 'Action description to be returned with the Oracle result.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
+                maxLength: 250,
+              }
+            ]
+          // END unique
+          }).then(commands => {
+            pool.query(
+              `INSERT INTO bot_commands(id, name, description, type, application_id) 
+              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
+              ON CONFLICT (id) DO UPDATE 
+              SET name = excluded.name,
+                  description = excluded.description,
+                  type = excluded.type,
+                  application_id = excluded.application_id;`,
+              (err,res) => {
+                console.log(err,res);
+              }
+            );
+          })
+          .then();
+        } catch(err) {
+          console.log(err.stack);
         }
-      ]
-    }).then(commands => {
-      const selected = (({type, name, description, id}) => ({type, name, description, id}))(commands);
-      fs.promises.writeFile('commands.log', JSON.stringify(selected));
-    });
+      } else {
+        return;
+      }
+    })
   } catch(err) {
     console.log(err.stack);
-  }
-  try {
-    commands?.create({
-      id: 'fuClassicOracle',
-      name: 'fu-classic',
-      description: 'Invokes the FU Classic Oracle.',
-      application_id: (clientinfo.clientid),
-      options: [
-        {
-          name: 'modifier',
-          description: 'Sum of positive and negative modifiers.',
-          required: true,
-          type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-          minValue: -10,
-          maxValue: 10,
-        },
-        {
-          name: 'action_message',
-          description: 'Action description to be returned with the Oracle result.',
-          required: false,
-          type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
-          maxLength: 250,
-        }
-      ]
-  }).then(commands => {
-    const selected = (({type, name, description, id}) => ({type, name, description, id}))(commands);
-    fs.promises.appendFile('commands.log',"\n" + JSON.stringify(selected));
-  });
-  } catch(err) {
-  console.log(err.stack);
-  }
-  try {
-    commands?.create({
-      id: 'fuAltOracle',
-      name: 'fu-alt',
-      description: 'Invokes the FU Alternate Oracle.',
-      application_id: (clientinfo.clientid),
-      options: [
-        {
-          name: 'action_dice',
-          description: 'Amount of Action Dice.',
-          required: true,
-          type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-          minValue: 1,
-          maxValue: 10,
-        },
-        {
-          name: 'danger_dice',
-          description: 'Amount of Danger Dice.',
-          required: true,
-          type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-          minValue: 1,
-          maxValue: 10,
-        },
-        {
-          name: 'action_message',
-          description: 'Action description to be returned with the Oracle result.',
-          required: false,
-          type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
-          maxLength: 250,
-        }
-      ]
-  }).then(commands => {
-    const selected = (({type, name, description, id}) => ({type, name, description, id}))(commands);
-    fs.promises.appendFile('commands.log',"\n" + JSON.stringify(selected));
-  });
-  } catch(err) {
-  console.log(err.stack);
-  }
+  };
 
+  // Register fu-alt command with Discord.
   try {
-    commands?.create({
-      id: 'fuV2Help',
-      name: 'fu-help',
-      description: 'FUv2 Help.',
-      application_id: (clientinfo.clientid),
-  }).then(commands => {
-    const selected = (({type, name, description, id}) => ({type, name, description, id}))(commands);
-    fs.promises.appendFile('commands.log',"\n" + JSON.stringify(selected));
-  });
+    checkCommandExists('fu-alt').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+      if (results === null) {
+        try {
+          // BEGIN unique
+          commands?.create({
+            id: 'fuAltOracle',
+            name: 'fu-alt',
+            description: 'Invokes the FU Alternate Oracle.',
+            application_id: (clientinfo.clientid),
+            options: [
+              {
+                name: 'action_dice',
+                description: 'Amount of Action Dice.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 1,
+                maxValue: 10,
+              },
+              {
+                name: 'danger_dice',
+                description: 'Amount of Danger Dice.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 1,
+                maxValue: 10,
+              },
+              {
+                name: 'action_message',
+                description: 'Action description to be returned with the Oracle result.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
+                maxLength: 250,
+              }
+            ]
+          // END unique
+          }).then(commands => {
+            pool.query(
+              `INSERT INTO bot_commands(id, name, description, type, application_id) 
+              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
+              ON CONFLICT (id) DO UPDATE 
+              SET name = excluded.name,
+                  description = excluded.description,
+                  type = excluded.type,
+                  application_id = excluded.application_id;`,
+              (err,res) => {
+                console.log(err,res);
+              }
+            );
+          })
+          .then();
+        } catch(err) {
+          console.log(err.stack);
+        }
+      } else {
+        return;
+      }
+    })
   } catch(err) {
-  console.log(err.stack);
-  }
+    console.log(err.stack);
+  };
+
+  // Register fu-classic command with Discord.
+  try {
+    checkCommandExists('fu-classic').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+      if (results === null) {
+        try {
+          // BEGIN unique
+          commands?.create({
+            id: 'fuClassicOracle',
+            name: 'fu-classic',
+            description: 'Invokes the FU Classic Oracle.',
+            application_id: (clientinfo.clientid),
+            options: [
+              {
+                name: 'modifier',
+                description: 'Sum of positive and negative modifiers.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: -10,
+                maxValue: 10,
+              },
+              {
+                name: 'action_message',
+                description: 'Action description to be returned with the Oracle result.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
+                maxLength: 250,
+              }
+            ]
+          // END unique
+          }).then(commands => {
+            pool.query(
+              `INSERT INTO bot_commands(id, name, description, type, application_id) 
+              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
+              ON CONFLICT (id) DO UPDATE 
+              SET name = excluded.name,
+                  description = excluded.description,
+                  type = excluded.type,
+                  application_id = excluded.application_id;`,
+              (err,res) => {
+                console.log(err,res);
+              }
+            );
+          })
+          .then();
+        } catch(err) {
+          console.log(err.stack);
+        }
+      } else {
+        return;
+      }
+    })
+  } catch(err) {
+    console.log(err.stack);
+  };
+
+  // Register fu-help command with Discord.
+  try {
+    checkCommandExists('fu-help').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+      if (results === null) {
+        try {
+          // BEGIN unique
+          commands?.create({
+            id: 'fuV2Help',
+            name: 'fu-help',
+            description: 'FUv2 Help.',
+            application_id: (clientinfo.clientid)
+          // END unique
+          }).then(commands => {
+            pool.query(
+              `INSERT INTO bot_commands(id, name, description, type, application_id) 
+              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
+              ON CONFLICT (id) DO UPDATE 
+              SET name = excluded.name,
+                  description = excluded.description,
+                  type = excluded.type,
+                  application_id = excluded.application_id;`,
+              (err,res) => {
+                console.log(err,res);
+              }
+            );
+          })
+          .then();
+        } catch(err) {
+          console.log(err.stack);
+        }
+      } else {
+        return;
+      }
+    })
+  } catch(err) {
+    console.log(err.stack);
+  };
+
+  // Register Flip Coin command with Discord.
+  try {
+    checkCommandExists('Flip Coin').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+      if (results === null) {
+        try {
+          // BEGIN unique
+          commands?.create({
+            id: 'fuFlipCoin',
+            name: 'Flip Coin',
+            type: Discord.Constants.ApplicationCommandTypes.USER,
+            application_id: (clientinfo.clientid)
+          // END unique
+          }).then(commands => {
+            pool.query(
+              `INSERT INTO bot_commands(id, name, description, type, application_id) 
+              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
+              ON CONFLICT (id) DO UPDATE 
+              SET name = excluded.name,
+                  description = excluded.description,
+                  type = excluded.type,
+                  application_id = excluded.application_id;`,
+              (err,res) => {
+                console.log(err,res);
+              }
+            );
+          })
+          .then();
+        } catch(err) {
+          console.log(err.stack);
+        }
+      } else {
+        return;
+      }
+    })
+  } catch(err) {
+    console.log(err.stack);
+  };
 });
-
 // Listen for commands.
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) {
@@ -417,7 +575,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Reply with private buttons for specific help.
     interaction.reply({
-      content: "The FUv2 Dice Roller supports multiple FU dice systems.\n/fu will invoke the FU2 Oracle.\n/fu-alt will invoke the FU Alternate Oracle.\n/fu-classic will invoke the FU Classic Oracle.",
+      content: "The FU Dice Bot supports multiple dice systems for, FU: the Freeform Universal RPG by Nathan Russell.\n\n/fu will invoke the FU2 Oracle.\n/fu-alt will invoke an Alternate FU Oracle.\n/fu-classic will invoke the Classic FU Oracle.\n\nPlease choose an option below to learn more about it.",
       ephemeral: true,
       components: [
         {

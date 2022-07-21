@@ -1,5 +1,4 @@
 /auth.json
 /node_modules
 /.vs
-/usage.log
-/commands.log
+/dbConfig.json
