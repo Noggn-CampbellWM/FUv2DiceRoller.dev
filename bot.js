@@ -1,11 +1,25 @@
 const Discord = require("discord.js")
-const { Client ,Intents } = require('discord.js');
+const { Client , Intents } = require('discord.js');
+// Bot Info
 const auth = require('./auth.json');
 const clientinfo = require('./clientinfo.json');
+// Help Info
 const helpinfo = require('./helpinfo.json');
+// DB Info
 const {Pool} = require('pg');
 const dbConnection = require('./dbConfig.json');
-//const { ApplicationCommandPermissionTypes } = require("discord.js/typings/enums");
+// Command Registration Info
+const commandList = require('./create-commands');
+// Bot Interactions
+const oracleFuAlt = require('./interactions-fu/oracle-fu-alt.js');
+const oracleFuClassic = require('./interactions-fu/oracle-fu-classic.js');
+const oracleFu2 = require('./interactions-fu/oracle-fu2.js');
+const actionFuHelp = require('./interactions-fu/action-fu-help.js');
+const buttonFu = require('./interactions-fu/button-fu.js');
+const genDiceModal = require('./interactions-fu/modal-diceroller.js');
+const oracleFuDice = require('./interactions-fu/oracle-fu-dice.js');
+const genDiceDefaultModal = require('./interactions-fu/modal-user-defaults.js');
+const setDiceDefault = require('./interactions-fu/set-fu-dice.js');
 
 const client = new Discord.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -20,635 +34,75 @@ const pool = new Pool({
   port: dbConnection.port
 });
 
-// check to see if there is already an entry in oakleaf.public.bot_commands.name, for use when registering a new command with Discord.
-async function checkCommandExists(cName) {
-    const res = await pool.query(`select bc.name from oakleaf.public.bot_commands bc where bc.name = '${cName}' fetch first 1 rows only`);
-    if (res.rows.length === 0) {
-      return null;
-    } else {
-      //console.log(res.rows[0].name)
-      return res.rows[0].name
-    };
-  };
-
 // On startup...
 client.on("ready", () => {
-  console.log(`${client.user.tag} came online!`)
-
- //client.user.setUsername(clientinfo.botName); //Uncomment to update Bot Username.
-  
- // Allow my server to get instant command updates.
-  const guildId = '992088891429503087'
-  const guild = client.guilds.cache.get(guildId)
-
-  let commands
-  if (guild) {
-    commands = guild.commands
-  } else {
-    commands = client.application?.commands
-  }
-
-  // Register fu command with Discord.
-  try {
-    checkCommandExists('fu').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
-      if (results === null) {
-        try {
-          // BEGIN unique
-          commands?.create({
-            id: 'fuV2Oracle',
-            name: 'fu',
-            description: 'Invokes the FU2 Oracle.',
-            application_id: (clientinfo.clientid),
-            options: [
-              {
-                name: 'action_dice',
-                description: 'Amount of Action Dice.',
-                required: true,
-                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-                minValue: 1,
-                maxValue: 10,
-              },
-              {
-                name: 'danger_dice',
-                description: 'Amount of Danger Dice.',
-                required: false,
-                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-                minValue: 0,
-                maxValue: 10,
-              },
-              {
-                name: 'action_message',
-                description: 'Action description to be returned with the Oracle result.',
-                required: false,
-                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
-                maxLength: 250,
-              }
-            ]
-          // END unique
-          }).then(commands => {
-            pool.query(
-              `INSERT INTO bot_commands(id, name, description, type, application_id) 
-              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
-              ON CONFLICT (id) DO UPDATE 
-              SET name = excluded.name,
-                  description = excluded.description,
-                  type = excluded.type,
-                  application_id = excluded.application_id;`,
-              (err,res) => {
-                console.log(err,res);
-              }
-            );
-          })
-          .then();
-        } catch(err) {
-          console.log(err.stack);
-        }
-      } else {
-        return;
-      }
-    })
-  } catch(err) {
-    console.log(err.stack);
-  };
-
-  // Register fu-alt command with Discord.
-  try {
-    checkCommandExists('fu-alt').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
-      if (results === null) {
-        try {
-          // BEGIN unique
-          commands?.create({
-            id: 'fuAltOracle',
-            name: 'fu-alt',
-            description: 'Invokes the FU Alternate Oracle.',
-            application_id: (clientinfo.clientid),
-            options: [
-              {
-                name: 'action_dice',
-                description: 'Amount of Action Dice.',
-                required: true,
-                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-                minValue: 1,
-                maxValue: 10,
-              },
-              {
-                name: 'danger_dice',
-                description: 'Amount of Danger Dice.',
-                required: true,
-                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-                minValue: 1,
-                maxValue: 10,
-              },
-              {
-                name: 'action_message',
-                description: 'Action description to be returned with the Oracle result.',
-                required: false,
-                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
-                maxLength: 250,
-              }
-            ]
-          // END unique
-          }).then(commands => {
-            pool.query(
-              `INSERT INTO bot_commands(id, name, description, type, application_id) 
-              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
-              ON CONFLICT (id) DO UPDATE 
-              SET name = excluded.name,
-                  description = excluded.description,
-                  type = excluded.type,
-                  application_id = excluded.application_id;`,
-              (err,res) => {
-                console.log(err,res);
-              }
-            );
-          })
-          .then();
-        } catch(err) {
-          console.log(err.stack);
-        }
-      } else {
-        return;
-      }
-    })
-  } catch(err) {
-    console.log(err.stack);
-  };
-
-  // Register fu-classic command with Discord.
-  try {
-    checkCommandExists('fu-classic').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
-      if (results === null) {
-        try {
-          // BEGIN unique
-          commands?.create({
-            id: 'fuClassicOracle',
-            name: 'fu-classic',
-            description: 'Invokes the FU Classic Oracle.',
-            application_id: (clientinfo.clientid),
-            options: [
-              {
-                name: 'modifier',
-                description: 'Sum of positive and negative modifiers.',
-                required: true,
-                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
-                minValue: -10,
-                maxValue: 10,
-              },
-              {
-                name: 'action_message',
-                description: 'Action description to be returned with the Oracle result.',
-                required: false,
-                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
-                maxLength: 250,
-              }
-            ]
-          // END unique
-          }).then(commands => {
-            pool.query(
-              `INSERT INTO bot_commands(id, name, description, type, application_id) 
-              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
-              ON CONFLICT (id) DO UPDATE 
-              SET name = excluded.name,
-                  description = excluded.description,
-                  type = excluded.type,
-                  application_id = excluded.application_id;`,
-              (err,res) => {
-                console.log(err,res);
-              }
-            );
-          })
-          .then();
-        } catch(err) {
-          console.log(err.stack);
-        }
-      } else {
-        return;
-      }
-    })
-  } catch(err) {
-    console.log(err.stack);
-  };
-
-  // Register fu-help command with Discord.
-  try {
-    checkCommandExists('fu-help').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
-      if (results === null) {
-        try {
-          // BEGIN unique
-          commands?.create({
-            id: 'fuV2Help',
-            name: 'fu-help',
-            description: 'FUv2 Help.',
-            application_id: (clientinfo.clientid)
-          // END unique
-          }).then(commands => {
-            pool.query(
-              `INSERT INTO bot_commands(id, name, description, type, application_id) 
-              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
-              ON CONFLICT (id) DO UPDATE 
-              SET name = excluded.name,
-                  description = excluded.description,
-                  type = excluded.type,
-                  application_id = excluded.application_id;`,
-              (err,res) => {
-                console.log(err,res);
-              }
-            );
-          })
-          .then();
-        } catch(err) {
-          console.log(err.stack);
-        }
-      } else {
-        return;
-      }
-    })
-  } catch(err) {
-    console.log(err.stack);
-  };
-
-  // Register Flip Coin command with Discord.
-  try {
-    checkCommandExists('Flip Coin').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
-      if (results === null) {
-        try {
-          // BEGIN unique
-          commands?.create({
-            id: 'fuFlipCoin',
-            name: 'Flip Coin',
-            type: Discord.Constants.ApplicationCommandTypes.USER,
-            application_id: (clientinfo.clientid)
-          // END unique
-          }).then(commands => {
-            pool.query(
-              `INSERT INTO bot_commands(id, name, description, type, application_id) 
-              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
-              ON CONFLICT (id) DO UPDATE 
-              SET name = excluded.name,
-                  description = excluded.description,
-                  type = excluded.type,
-                  application_id = excluded.application_id;`,
-              (err,res) => {
-                console.log(err,res);
-              }
-            );
-          })
-          .then();
-        } catch(err) {
-          console.log(err.stack);
-        }
-      } else {
-        return;
-      }
-    })
-  } catch(err) {
-    console.log(err.stack);
-  };
+  console.log(`${client.user.tag} came online!`);
+  commandList.createCommands(Discord,client,clientinfo,pool);
 });
-// Listen for commands.
+
+// Listen for commands
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) {
     return
   };
 
-  // FU2 Oracle
   const { commandName, options } = interaction;
-  if (commandName === 'fu') {
-    // Log usage by source. (do not include in production!)
-    console.log(interaction.guild?.name === undefined ? "fu cmd used in: DM" : "fu cmd used in: " + interaction.guild?.name);
 
-    // Retrieve dice pools and message.
-    const action_dice = options.getNumber('action_dice') || 0;
-    const danger_dice = options.getNumber('danger_dice') || 0;
-    let action_message
-      if (options.getString('action_message')?.length > 240) {
-        action_message = options.getString('action_message')?.substring(0,240).trim() + "..."
-      } else {
-        action_message = options.getString('action_message')?.trim() || ''
-      };
-
-    // Create the dice pools.
-    const actionArray = [];
-    const dangerArray = [];
-
-    // Roll the dice.
-    for (let i=0; i<action_dice; i++) {
-      actionArray.push(Math.round((Math.random()*5)+1))
-    };
-    for (let i=0; i<danger_dice; i++) {
-      dangerArray.push(Math.round((Math.random()*5)+1))
-    };
-
-    // Save the raw dice pools for inclusion in the reply.
-    const actionResults = actionArray.toString();
-    const dangerResults = dangerArray.toString();
-
-    // Remove matching dice matches between the pools.
-    for (let i = 1; i <= 6; i++) {
-      while(actionArray.sort().indexOf(i) > -1 && dangerArray.sort().indexOf(i) > -1) {
-        actionArray.sort().splice(actionArray.sort().indexOf(i),1);
-        dangerArray.sort().splice(dangerArray.sort().indexOf(i),1);
-      };
-    };
-
-    // The format of the reply.
-    function oracleInteraction(oracleText) {
-      const actionString = action_message.trim().toString() == '' ? '' : '*' + action_message.trim().toString() + '*\n';
-      interaction.reply({
-        content: actionString + oracleText + "\nAction Dice[" + actionResults.toString() + "] Danger Dice[" + dangerResults.toString() + "]",
-        ephemeral: false,
-      })
-    };
-
-    // Reply based on dice results, the actual reply itself is above.
-    if (actionArray.length == 0) {
-      oracleInteraction("**Botch!\nNo and...**  You fail and things get much worse.");
-    }
-    else if (Math.max(...actionArray.sort()) == 1) {
-      oracleInteraction("**No and...**  You fail and things get much worse.");
-    }
-    else if(Math.max(...actionArray.sort()) == 2) {
-      oracleInteraction("**No...**  You fail.");
-    }
-    else if(Math.max(...actionArray.sort()) == 3) {
-      oracleInteraction("**No but...**  You fail, just.");
-    }
-    else if(Math.max(...actionArray.sort()) == 4) {
-      oracleInteraction("**Yes but...**  You succeed, but at a cost.");
-    }
-    else if(Math.max(...actionArray.sort()) == 5) {
-      oracleInteraction("**Yes...**  You succeed.");
-    }
-    else if(Math.max(...actionArray.sort()) == 6) {
-      oracleInteraction("**Yes and...**  You succeed and gain some other advantage.");
-    };
-  }
-
-  // FU Classic Oracle
-  else if (commandName === 'fu-classic') {
-    // Log usage by source. (do not include in production!)
-    console.log(interaction.guild?.name === undefined ? "fu-classic cmd used in: DM" : "fu-classic cmd used in: " + interaction.guild?.name);
-
-    // Retrieve dice pools and message.
-    const modifier = options.getNumber('modifier') || 0;
-    let action_message
-      if (options.getString('action_message')?.length > 240) {
-        action_message = options.getString('action_message')?.substring(0,240).trim() + "..."
-      } else {
-        action_message = options.getString('action_message')?.trim() || ''
-      };
-    
-    // Create the dice pool.
-    const rollArray = [];
-
-    // Roll the dice.
-    for (let i=0; i<Math.abs(modifier > -1? modifier + 1: modifier); i++) {
-      rollArray.push(Math.round((Math.random()*5)+1))
-    };
-
-    // Save the raw dice pool for inclusion in the reply.
-    const actionResults = rollArray.toString();
-
-    // Sort the dice in the order required for the Oracle.
-    const sortOrder = modifier > -1 ? [6,4,2,5,3,1] : [1,3,5,2,4,6];
-
-    const applyCustomOrder = (arr, desiredOrder) => {
-      const orderForIndexVals = desiredOrder.slice(0).reverse();
-      arr.sort((a, b) => {
-        const aIndex = -orderForIndexVals.indexOf(a);
-        const bIndex = -orderForIndexVals.indexOf(b);
-        return aIndex - bIndex;
-      });
-    };
-
-    applyCustomOrder(rollArray, sortOrder);
-
-    // The format of the reply.
-    function oracleInteraction(oracleText) {
-      const rollType = (() => {
-        if (modifier < 0) {return "Worst of "} else
-        if (modifier == 0) {return "Result "} else
-        if (modifier > 0) {return "Best of "};
-      })();
-      
-      const actionString = action_message.trim().toString() == '' ? '' : '*' + action_message.trim().toString() + '*\n';
-      interaction.reply({
-        content: actionString + oracleText + "\n" + rollType +"[" + actionResults.toString() + "]",
-        ephemeral: false,
-      })
-    };
-
-    // Reply based on dice results, the actual reply itself is above.
-    if (rollArray.at(0) == 1) {
-      oracleInteraction("**No and...**  You fail and things get much worse.");
-    }
-    else if(rollArray.at(0) == 3) {
-      oracleInteraction("**No...**  You fail.");
-    }
-    else if(rollArray.at(0) == 5) {
-      oracleInteraction("**No but...**  You fail, just.");
-    }
-    else if(rollArray.at(0) == 2) {
-      oracleInteraction("**Yes but...**  You succeed, but at a cost.");
-    }
-    else if(rollArray.at(0) == 4) {
-      oracleInteraction("**Yes...**  You succeed.");
-    }
-    else if(rollArray.at(0) == 6) {
-      oracleInteraction("**Yes and...**  You succeed and gain some other advantage.");
-    };
-  }
-
-  //FU-Alternate Oracle
-  else if (commandName === 'fu-alt') {
-    // Log usage by source. (do not include in production!)
-    console.log(interaction.guild?.name === undefined ? "fu-alt cmd used in: DM" : "fu-alt cmd used in: " + interaction.guild?.name);
-
-    // Retrieve dice pools and message.
-    const action_dice = options.getNumber('action_dice') || 0;
-    const danger_dice = options.getNumber('danger_dice') || 0;
-    let action_message
-      if (options.getString('action_message')?.length > 240) {
-        action_message = options.getString('action_message')?.substring(0,240).trim() + "..."
-      } else {
-        action_message = options.getString('action_message')?.trim() || ''
-      };
-    
-    // Create the dice pools.
-    const actionArray = [];
-    const dangerArray = [];
-
-    // Roll the dice.
-    for (let i=0; i<action_dice; i++) {
-      actionArray.push(Math.round((Math.random()*5)+1))
-    };
-    for (let i=0; i<danger_dice; i++) {
-      dangerArray.push(Math.round((Math.random()*5)+1))
-    };
-
-    // Save the raw dice pools for inclusion in the reply.
-    const actionResults = actionArray.toString();
-    const dangerResults = dangerArray.toString();
-
-    // Remove matching dice matches between the pools.
-    for (let i = 1; i <= 6; i++) {
-      while(actionArray.sort().indexOf(i) > -1 && dangerArray.sort().indexOf(i) > -1) {
-        actionArray.sort().splice(actionArray.sort().indexOf(i),1);
-        dangerArray.sort().splice(dangerArray.sort().indexOf(i),1);
-      };
-    };
-
-    // Retrieve the max value and second highest value from each of the dice pools.
-    const actionMax = actionArray.sort()[actionArray.length - 1] || -1;
-    const dangerMax = dangerArray.sort()[dangerArray.length - 1] || -1; 
-    const action2nd = actionArray.sort()[actionArray.length - 2] || -1;
-    const danger2nd = dangerArray.sort()[dangerArray.length - 2] || -1;    
-
-    function altMagic () {
-      if (actionMax === -1 && dangerMax === -1) {
-        return "escalation";
-      }
-      else if (actionMax === -1 || dangerMax === -1) {
-        const magicResult = actionMax !== -1 ? "yes" : "no";
-        return magicResult;
-      }
-      else if (actionMax > dangerMax) {
-        const magicResult = action2nd > dangerMax ? "yesand" : "yesbut";
-        return magicResult;
-      }
-      else if (actionMax < dangerMax) {
-        const magicResult = danger2nd > actionMax ? "noand" : "nobut";
-        return magicResult;
-      } else {
-        return "darkestError"
-      }
-    };
-
-    // The format of the reply.
-    function oracleInteraction(oracleText) {
-      const actionString = action_message.trim().toString() == '' ? '' : '*' + action_message.trim().toString() + '*\n';
-      return interaction.reply({
-        content: actionString + oracleText + "\nAction Dice[" + actionResults.toString() + "] Danger Dice[" + dangerResults.toString() + "]",
-        ephemeral: false,
-      })
-    };
-
-    // Reply based on dice results, the actual reply itself is above.
-    if (altMagic() == "escalation") {
-      oracleInteraction("**Escalation...** The unexpected happens.");
-    }
-    else if (altMagic() == "noand") {
-      oracleInteraction("**No and...**  You fail and things get much worse.");
-    }
-    else if (altMagic() == "no") {
-      oracleInteraction("**No...**  You fail.");
-    }
-    else if (altMagic() == "nobut") {
-      oracleInteraction("**No but...**  You fail, just.");
-    }
-    else if (altMagic() == "yesbut") {
-      oracleInteraction("**Yes but...**  You succeed, but at a cost.");
-    }
-    else if (altMagic() == "yes") {
-      oracleInteraction("**Yes...**  You succeed.");
-    }
-    else if (altMagic() == "yesand") {
-      oracleInteraction("**Yes and...**  You succeed and gain some other advantage.");
-    }
-    else if (altMagic() == "darkestError") {
-      interaction.reply({
-        content: "***Oracle Logic Error\nIn time, you will know the tragic extent of my failings.***" + "\nAction Dice[" + actionResults.toString() + "] Danger Dice[" + dangerResults.toString() + "]",
-        ephemeral: true,
-      });
-    } else {
-      interaction.reply({
-        content: "***Oracle Unknown Error\nRemind Yourself That Overconfidence Is A Slow And Insidious Killer.***" + "\nAction Dice[" + actionResults.toString() + "] Danger Dice[" + dangerResults.toString() + "]",
-        ephemeral: true,
-      });
-    }
-  }
-
-  // FU Help
-  else if (commandName === 'fu-help') {
-    // Log usage by source (do not include in production!)
-    console.log(interaction.guild?.name === undefined ? "fu-help cmd used in: DM" : "fu-help cmd used in: " + interaction.guild?.name);
-
-    // Reply with private buttons for specific help.
-    interaction.reply({
-      content: "The FU Dice Bot supports multiple dice systems for, FU: the Freeform Universal RPG by Nathan Russell.\n\n/fu will invoke the FU2 Oracle.\n/fu-alt will invoke an Alternate FU Oracle.\n/fu-classic will invoke the Classic FU Oracle.\n\nPlease choose an option below to learn more about it.",
-      ephemeral: true,
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              label: "FU2 Oracle Help",
-              style: 1,
-              custom_id: "fu2Help",
-            },
-            {
-              type: 2,
-              label: "FU Alternate Help",
-              style: 1,
-              custom_id: "fuAltHelp",
-            },
-            {
-              type: 2,
-              label: "FU Classic Help",
-              style: 1,
-              custom_id: "fuClassicHelp",
-            },
-            {
-              type: 2,
-              label: "About FU: the Freeform Universal RPG",
-              style: 1,
-              custom_id: "fuAbout",
-            }
-          ]
-        }
-      ]
-    })
-  }
+  if (commandName === 'fu') { // FU2 Oracle
+    oracleFu2.runOracleFu2(options,interaction);
+    console.log(interaction.guild?.name === undefined ? "fu cmd used in: DM" : "fu cmd used in: " + interaction.guild?.name); // remove before live
+  } else if (commandName === 'fu-classic') { // FU Classic Oracle
+    oracleFuClassic.runOracleFuClassic(options,interaction);
+    console.log(interaction.guild?.name === undefined ? "fu-classic cmd used in: DM" : "fu-classic cmd used in: " + interaction.guild?.name); // remove before live
+  } else if (commandName === 'fu-alt') { //FU-Alternate Oracle
+    oracleFuAlt.runOracleFuAlt(options,interaction);
+    console.log(interaction.guild?.name === undefined ? "fu-alt cmd used in: DM" : "fu-alt cmd used in: " + interaction.guild?.name); // remove before live
+  } else if (commandName === 'fu-help') { // FU Help
+    actionFuHelp.runActionFuHelp(interaction);
+    console.log(interaction.guild?.name === undefined ? "fu-help cmd used in: DM" : "fu-help cmd used in: " + interaction.guild?.name); // remove before live
+  } else if (commandName === 'fu-dice') { // Reply with modal to fu-dice
+    genDiceModal.runGenDiceModal(interaction,pool);
+  };
 });
 
-// Reply to Help buttons with info contained in helpinfo.json.
+// Listen for buttons
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) {
     return
   };
+  buttonFu.runButtonFu(interaction,helpinfo);
+});
 
-  const buttonId = interaction.customId;
-  if (buttonId === 'fu2Help') {
-    interaction.reply({
-      content: helpinfo.fu2,
-      ephemeral: true,
-      
-    })
-    console.log(interaction.guild?.name === undefined ? "fu2Help button used in: DM" : "fu2Help button used in: " + interaction.guild?.name);
-  }
-  else if (buttonId === 'fuAltHelp') {
-    interaction.reply({
-      content: helpinfo.fuAlt,
-      ephemeral: true,
-    })
-    console.log(interaction.guild?.name === undefined ? "fuAltHelp button used in: DM" : "fuAltHelp button used in: " + interaction.guild?.name);
-  }
-  else if (buttonId === 'fuClassicHelp') {
-    interaction.reply({
-      content: helpinfo.fuClassic,
-      ephemeral: true,
-    })
-    console.log(interaction.guild?.name === undefined ? "fuClassicHelp button used in: DM" : "fuClassicHelp button used in: " + interaction.guild?.name);
-  }
-  else if (buttonId === 'fuAbout') {
-    interaction.reply({
-      content: helpinfo.fuAbout,
-      ephemeral: true,
-    })
-    console.log(interaction.guild?.name === undefined ? "fuAbout button used in: DM" : "fuAbout button used in: " + interaction.guild?.name);
+// Reply with modal to context menu command.
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isContextMenu()) {
+    return
+  };
+
+  const contextId = interaction.commandName;
+  if (contextId === 'Roll Dice') {
+    genDiceModal.runGenDiceModal(interaction,pool);
+  } else if (contextId === 'Set Defaults') {
+    genDiceDefaultModal.runGenDiceDefaultModal(interaction);
   };
 });
+
+// Reply to modal.
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isModalSubmit()) {
+    return
+  };
+
+  const modalId = interaction.customId;
+
+  if (modalId === 'diceModal') {
+    oracleFuDice.runDiceRoller(interaction);
+  } else if (modalId === 'diceDefaultModal') {
+    setDiceDefault.runDiceDefaults(interaction,pool);
+  };
+});
+
+
 
 // Bot Token - Leave at end
 client.login(auth.botToken)
