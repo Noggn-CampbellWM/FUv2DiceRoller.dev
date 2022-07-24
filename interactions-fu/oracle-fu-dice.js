@@ -24,7 +24,9 @@ async function runDiceRoller (interaction) {
         return '⬡';
       } else if (modDiceTypeBase == '100') {
         return '⬘⬙';
-      };
+      } else if (modDiceTypeBase == '3') {
+        return '◨';
+      } else { return ''};
     };
     
     
@@ -40,7 +42,11 @@ async function runDiceRoller (interaction) {
       for (let i=0; i<modDiceAmmt; i++) {
         modRollArray.push(Math.max(Math.round((Math.random()*modDiceType) + modifier),1));
       };
-      return modRollArray;
+      if (modDiceTypeBase === "3") {
+        return modRollArray.map(function(element){return element - 2});
+      } else {
+        return modRollArray;
+      };
     };
 
     const modFinalRoll = await modRollArray();
@@ -55,6 +61,10 @@ async function runDiceRoller (interaction) {
       } else if (modDiceTypeBase == 100) {
         return modTempRoll.forEach((value, index) => {
           modTempRoll[index] = value.toString().padStart(2, "0");
+        });
+      } else if (modDiceTypeBase == 3) {
+        return modTempRoll.forEach((value, index) => {
+          modTempRoll[index] = value.toString().replace('-1','-').replace('0','  ').replace('1','+');
         });
       } else {
         return modTempRoll.sort();

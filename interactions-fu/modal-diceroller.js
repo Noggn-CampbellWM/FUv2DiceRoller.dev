@@ -6,11 +6,13 @@ async function runGenDiceModal(interaction,pool) {
   try {
     const res = await pool.query(`select bu.id, bu.dice_type, bu.roll_type from oakleaf.public.bot_user_defaults bu where bu.id = ${uID} fetch first 1 rows only`);
     if (res.rows.length === 0) {
-      return null;
+      let dDice = "20",
+          dRoll = "total";
+      return { dDice , dRoll };
     } else {
       let dDice = res.rows[0].dice_type,
           dRoll = res.rows[0].roll_type;
-      return { dDice , dRoll }
+      return { dDice , dRoll };
     };
     } catch(err) {
       console.log(err.stack);
@@ -19,9 +21,9 @@ async function runGenDiceModal(interaction,pool) {
 
   const { dDice , dRoll} = await checkUserExists(modDefaultDiceUser);
 
-  console.log(interaction.user.id);
-  console.log(dDice);
-  console.log(dRoll);
+  //console.log(interaction.user.id);
+  //console.log(dDice);
+  //console.log(dRoll);
 
 
   interaction.showModal({
@@ -98,6 +100,12 @@ async function runGenDiceModal(interaction,pool) {
                 value: "100",
                 description: "A hundred-sided die",
                 default: Boolean(dDice == "100")
+              },
+              {
+                label: "Fate",
+                value: "3",
+                description: "Fate dice",
+                default: Boolean(dDice == "2")
               }
             ],
             placeholder: "Choose your dice type",

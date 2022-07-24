@@ -49,6 +49,11 @@ runGenDiceDefaultModal = (interaction) => {
                   label: "D100",
                   value: "100",
                   description: "A hundred-sided die"
+                },
+                {
+                  label: "Fate",
+                  value: "3",
+                  description: "Fate Dice"
                 }
               ],
               placeholder: "Choose your default dice type",
