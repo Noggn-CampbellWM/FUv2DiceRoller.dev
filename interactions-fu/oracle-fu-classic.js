@@ -12,7 +12,7 @@ function runOracleFuClassic (options,interaction) {
     const rollArray = [];
 
     // Roll the dice.
-    for (let i=0; i<Math.abs(modifier > -1? modifier + 1: modifier); i++) {
+    for (let i=0; i<Math.abs(modifier > -1? modifier + 1: modifier - 1); i++) {
       rollArray.push(Math.round((Math.random()*5)+1))
     };
 
