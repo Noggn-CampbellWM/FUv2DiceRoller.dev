@@ -25,7 +25,7 @@ function createCommands (Discord,client,clientinfo,pool) {
     commands = client.application?.commands
   }
 
-  //commands.delete(''); // Uncomment to delete specific command, accepts command "id". Do not include in production.
+  //commands.delete('1000188532733780170'); // Uncomment to delete specific command, accepts command "id". Do not include in production.
 
   // Register fu command with Discord.
   try {
@@ -286,15 +286,113 @@ function createCommands (Discord,client,clientinfo,pool) {
 
   // Register fu-dice command with Discord.
   try {
-    checkCommandExists('fu-dice').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+    checkCommandExists('fu-roll').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
       if (results === null) {
         try {
           // BEGIN unique
           commands?.create({
-            id: 'fuRollDice1',
-            name: 'fu-dice',
-            description: 'Invoke the traditional dice roller.',
-            application_id: (clientinfo.clientid)
+            id: 'fuDiceRoll1',
+            name: 'fu-roll',
+            description: 'Invokes the dice roller.',
+            application_id: (clientinfo.clientid),
+            options: [
+              {
+                name: 'dice_number',
+                description: 'Amount of Dice.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 1,
+                maxValue: 99,
+              },
+              {
+                name: 'dice_type',
+                description: 'Type of dice.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                choices: [
+                  {
+                    name: "coin",
+                    value: 2
+                  },
+                  {
+                    name: "d4",
+                    value: 4
+                  },
+                  {
+                    name: "d6",
+                    value: 6
+                  },
+                  {
+                    name: "d8",
+                    value: 8
+                  },
+                  {
+                    name: "d10",
+                    value: 10
+                  },
+                  {
+                    name: "d12",
+                    value: 12
+                  },
+                  {
+                    name: "d20",
+                    value: 20
+                  },
+                  {
+                    name: "d100",
+                    value: 100
+                  },
+                  {
+                    name: "fate_dice",
+                    value: 3
+                  }
+                ]
+              },
+              {
+                name: 'dice_mod',
+                description: 'Modifier to roll.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: -99,
+                maxValue: 99
+              },
+              {
+                name: 'roll_type',
+                description: 'How the modifier is applied.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.STRING,
+                choices: [
+                  {
+                    name: "modify_total",
+                    value: "total"
+                  },
+                  {
+                    name: "modify_each",
+                    value: "individual"
+                  }
+                ]
+              },
+              {
+                name: 'exploding_dice',
+                description: 'Do the dice explode?.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                choices: [
+                  {
+                    name: "explode_top_2",
+                    value: 2
+                  },
+                  {
+                    name: "explode_top_1",
+                    value: 1
+                  },
+                  {
+                    name: "standard_roll",
+                    value: 0
+                  }
+                ]
+              }
+            ]
           // END unique
           }).then(commands => {
             pool.query(

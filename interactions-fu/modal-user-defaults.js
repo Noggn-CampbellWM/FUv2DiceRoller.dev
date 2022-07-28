@@ -7,6 +7,22 @@ runGenDiceDefaultModal = (interaction) => {
           type: 1,
           components: [
             {
+              type: 4,
+              custom_id: "diceNumberDefault",
+              label: "How many dice?",
+              style: 1,
+              min_length: 1,
+              max_length: 2,
+              value: "1",
+              placeholder: "1",
+              required: true
+            }
+          ]
+        },
+        {
+          type: 1,
+          components: [
+            {
               type: 3,
               custom_id: "diceTypeDefault",
               options: [
@@ -73,6 +89,7 @@ runGenDiceDefaultModal = (interaction) => {
                   label: "Modify total",
                   value: "total",
                   description: "Add modifier to grand total.",
+                  default: true
                 },
                 {
                   label: "Modify each die",
@@ -80,12 +97,44 @@ runGenDiceDefaultModal = (interaction) => {
                   description: "Add modifier to each die individually."
                 }
               ],
-              placeholder: "Choose your default roll type",
+              placeholder: "Choose your default roll modifier type",
               min_values: 1,
               max_values: 1
             }
           ]
         },
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              custom_id: "explodingDiceDefault",
+              options: [
+                {
+                  label: "Exploding Dice: Top 1",
+                  value: "1",
+                  description: "Explode dice on a max result.(not yet implemented)",
+                  default: false
+                },
+                {
+                  label: "Exploding Dice: Top 2",
+                  value: "2",
+                  description: "Explode dice on the top two results.(not yet implemented)",
+                  default: false
+                },
+                {
+                  label: "Standard Roll",
+                  value: "0",
+                  description: "Do not explode dice.",
+                  default: true
+                }
+              ],
+              placeholder: "Choose your default roll type",
+              min_values: 1,
+              max_values: 1
+            }
+          ]
+        }
       ]
     })
     console.log(interaction.guild?.name === undefined ? "Context Dice Roll Default used in: DM" : "Context Dice Roll Default used in: " + interaction.guild?.name);

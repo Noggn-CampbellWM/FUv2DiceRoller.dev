@@ -14,6 +14,7 @@ const commandList = require('./create-commands');
 const oracleFuAlt = require('./interactions-fu/oracle-fu-alt.js');
 const oracleFuClassic = require('./interactions-fu/oracle-fu-classic.js');
 const oracleFu2 = require('./interactions-fu/oracle-fu2.js');
+const oracleRoller = require('./interactions-fu/oracle-fu-roll.js');
 const actionFuHelp = require('./interactions-fu/action-fu-help.js');
 const buttonFu = require('./interactions-fu/button-fu.js');
 const genDiceModal = require('./interactions-fu/modal-diceroller.js');
@@ -62,6 +63,8 @@ client.on('interactionCreate', async (interaction) => {
     console.log(interaction.guild?.name === undefined ? "fu-help cmd used in: DM" : "fu-help cmd used in: " + interaction.guild?.name); // remove before live
   } else if (commandName === 'fu-dice') { // Reply with modal to fu-dice
     genDiceModal.runGenDiceModal(interaction,pool);
+  } else if (commandName === 'fu-roll') { // Reply with modal to fu-dice
+    oracleRoller.runSlashRoller(options,interaction);
   };
 });
 

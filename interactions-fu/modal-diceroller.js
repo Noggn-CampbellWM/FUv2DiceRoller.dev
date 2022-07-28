@@ -4,22 +4,28 @@ async function runGenDiceModal(interaction,pool) {
   
   let checkUserExists = async (uID) => {
   try {
-    const res = await pool.query(`select bu.id, bu.dice_type, bu.roll_type from oakleaf.public.bot_user_defaults bu where bu.id = ${uID} fetch first 1 rows only`);
+    const res = await pool.query(`select bu.id, bu.dice_type, bu.roll_type, bu.dice_number, bu.exploding_dice, bu.dice_sort from oakleaf.public.bot_user_defaults bu where bu.id = ${uID} fetch first 1 rows only`);
     if (res.rows.length === 0) {
       let dDice = "20",
-          dRoll = "total";
-      return { dDice , dRoll };
+          dRoll = "total",
+          dNumber = "1",
+          dExplode = "0",
+          dSort = "true";
+      return { dDice , dRoll , dNumber , dExplode , dSort };
     } else {
       let dDice = res.rows[0].dice_type,
-          dRoll = res.rows[0].roll_type;
-      return { dDice , dRoll };
+          dRoll = res.rows[0].roll_type,
+          dNumber = res.rows[0].dice_number,
+          dExplode = res.rows[0].exploding_dice,
+          dSort = res.rows[0].dice_sort;
+      return { dDice , dRoll , dNumber , dExplode , dSort};
     };
     } catch(err) {
       console.log(err.stack);
     };
   };
 
-  const { dDice , dRoll} = await checkUserExists(modDefaultDiceUser);
+  const { dDice , dRoll , dNumber , dExplode , dSort} = await checkUserExists(modDefaultDiceUser);
 
   //console.log(interaction.user.id);
   //console.log(dDice);
@@ -40,11 +46,11 @@ async function runGenDiceModal(interaction,pool) {
             style: 1,
             min_length: 1,
             max_length: 2,
-            // value: "1",
+            value: dNumber,
             placeholder: "1",
             required: false
           }
-        ]
+        ],
       },
       {
         type: 1,
@@ -105,7 +111,7 @@ async function runGenDiceModal(interaction,pool) {
                 label: "Fate",
                 value: "3",
                 description: "Fate dice",
-                default: Boolean(dDice == "2")
+                default: Boolean(dDice == "3")
               }
             ],
             placeholder: "Choose your dice type",
@@ -124,7 +130,6 @@ async function runGenDiceModal(interaction,pool) {
             style: 1,
             min_length: 1,
             max_length: 3,
-            value: "0",
             placeholder: "0",
             required: false
           }
@@ -156,6 +161,38 @@ async function runGenDiceModal(interaction,pool) {
           }
         ]
       },
+      {
+        type: 1,
+        components: [
+          {
+            type: 3,
+            custom_id: "explodingDice",
+            options: [
+              {
+                label: "Exploding Dice: Top 1",
+                value: "1",
+                description: "Explode dice on a max result.",
+                default: Boolean(dExplode == "1")
+              },
+              {
+                label: "Exploding Dice: Top 2",
+                value: "2",
+                description: "Explode dice on the top two results.",
+                default: Boolean(dExplode == "2")
+              },
+              {
+                label: "Standard Roll",
+                value: "0",
+                description: "Do not explode dice.",
+                default: Boolean(dExplode == "0")
+              }
+            ],
+            placeholder: "Choose your roll type",
+            min_values: 1,
+            max_values: 1
+          }
+        ]
+      }
     ]
   })
   console.log(interaction.guild?.name === undefined ? "Context Dice Roll used in: DM" : "Context Dice Roll used in: " + interaction.guild?.name);
