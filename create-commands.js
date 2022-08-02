@@ -458,5 +458,78 @@ function createCommands (Discord,client,clientinfo,pool) {
   } catch(err) {
     console.log(err.stack);
   };
+
+  // Register fu-custom command with Discord.
+  try {
+    checkCommandExists('fu-custom').then(results => { //This should really be in a seperate js (Change to current application:name or 'UPDATE' if any of the options change.)
+      if (results === null) {
+        try {
+          // BEGIN unique
+          commands?.create({
+            id: 'fuCustomRoll',
+            name: 'fu-custom',
+            description: 'Invokes custom dice.',
+            application_id: (clientinfo.clientid),
+            options: [
+              {
+                name: 'dice_number',
+                description: 'Amount of Dice. Anything over 34 will not display individual results.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 1,
+                maxValue: 420,
+              },
+              {
+                name: 'dice_type',
+                description: 'Type of dice.',
+                required: true,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                minValue: 1,
+                maxValue: 9001,
+              },
+              {
+                name: 'dice_sort',
+                description: 'Is it sorted?.',
+                required: false,
+                type: Discord.Constants.ApplicationCommandOptionTypes.NUMBER,
+                choices: [
+                  {
+                    name: "sort_roll",
+                    value: 1
+                  },
+                  {
+                    name: "unsorted",
+                    value: 0
+                  }
+                ]
+              }
+            ]
+          // END unique
+          }).then(commands => {
+            pool.query(
+              `INSERT INTO bot_commands(id, name, description, type, application_id) 
+              VALUES(${commands.id}, '${commands.name}', '${commands.description}', '${commands.type}', ${clientinfo.clientid}) 
+              ON CONFLICT (id) DO UPDATE 
+              SET name = excluded.name,
+                  description = excluded.description,
+                  type = excluded.type,
+                  application_id = excluded.application_id;`,
+              (err,res) => {
+                console.log(err,res);
+              }
+            );
+          })
+          .then();
+        } catch(err) {
+          console.log(err.stack);
+        }
+      } else {
+        return;
+      }
+    })
+  } catch(err) {
+    console.log(err.stack);
+  };
 };
+
 module.exports = { createCommands };

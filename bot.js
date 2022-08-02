@@ -21,6 +21,7 @@ const genDiceModal = require('./interactions-fu/modal-diceroller.js');
 const oracleFuDice = require('./interactions-fu/oracle-fu-dice.js');
 const genDiceDefaultModal = require('./interactions-fu/modal-user-defaults.js');
 const setDiceDefault = require('./interactions-fu/set-fu-dice.js');
+const oracleCustomDice = require('./interactions-fu/oracle-fu-custom.js');
 
 const client = new Discord.Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -65,6 +66,8 @@ client.on('interactionCreate', async (interaction) => {
     genDiceModal.runGenDiceModal(interaction,pool);
   } else if (commandName === 'fu-roll') { // Reply with modal to fu-dice
     oracleRoller.runSlashRoller(options,interaction);
+  } else if (commandName === 'fu-custom') { // Custom Oracle
+    oracleCustomDice.runCustomRoller(options,interaction);
   };
 });
 
